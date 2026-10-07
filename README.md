@@ -1,12 +1,11 @@
 # ansible-securisation
 
-Playbook Ansible de durcissement SSH et d'installation de bind.
+Playbook Ansible de durcissement SSH.
 
 ## Ce que fait le playbook
 
-- limite la connexion SSH au seul utilisateur `ansible` venant de `srv-ansible` (10.81.50.62)
-- verrouille le mot de passe de l'utilisateur `ansible` (connexion par clé uniquement)
-- installe et active le service `bind` (`named`)
+- limite la connexion SSH de l'utilisateur `ansible` à l'utilisateur `ansible`
+  venant de `srv-ansible` (10.81.50.62), sur tous les postes
 
 ## Prérequis
 
