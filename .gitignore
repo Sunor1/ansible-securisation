@@ -1,0 +1,14 @@
+# Ansible
+*.retry
+.ansible/
+.vault_pass*
+*.vault
+
+# Logs et temporaires
+*.log
+*.swp
+*~
+
+# Éditeurs
+.vscode/
+.idea/
