@@ -1,0 +1,16 @@
+---
+- name: Limiter les connexions SSH aux utilisateurs autorisés
+  ansible.builtin.template:
+    src: 10-ansible-restrict.conf.j2
+    dest: "{{ ssh_dropin_path }}"
+    owner: root
+    group: root
+    mode: "0600"
+    validate: /usr/sbin/sshd -t -f %s
+  notify: Redémarrer sshd
+
+- name: Neutraliser la connexion par mot de passe de l'utilisateur ansible
+  ansible.builtin.user:
+    name: ansible
+    password_lock: true
+  when: ssh_lock_ansible_password | bool

@@ -1,0 +1,4 @@
+---
+ssh_allow_users:
+  - "ansible@10.81.50.62"
+  - "{{ admin_user_name }}"

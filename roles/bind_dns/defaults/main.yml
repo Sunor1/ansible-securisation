@@ -1,0 +1,7 @@
+---
+bind_conf_path: /etc/named.conf
+bind_conf_backup: /etc/named.conf.last_good
+bind_listen_address: "{{ ansible_facts['default_ipv4']['address'] }}"
+bind_allowed_network: 10.81.100.0/24
+bind_forwarder: "{{ ansible_facts['dns']['nameservers'] | first }}"
+bind_test_name: localhost

@@ -1,0 +1,99 @@
+---
+- name: Installer bind et ses outils
+  ansible.builtin.dnf:
+    name:
+      - bind
+      - bind-utils
+    state: present
+
+- name: Vérifier que le DNS de l'hôte est utilisable comme redirecteur
+  ansible.builtin.assert:
+    that:
+      - bind_forwarder is defined
+      - bind_forwarder not in ['127.0.0.1', '::1', bind_listen_address]
+    fail_msg: "Aucun DNS externe exploitable comme redirecteur sur {{ inventory_hostname }}"
+
+- name: Contrôler la configuration actuelle
+  ansible.builtin.command: "named-checkconf {{ bind_conf_path }}"
+  register: bind_current_check
+  changed_when: false
+  failed_when: false
+
+- name: Mémoriser la dernière configuration fonctionnelle
+  ansible.builtin.copy:
+    src: "{{ bind_conf_path }}"
+    dest: "{{ bind_conf_backup }}"
+    remote_src: true
+    owner: root
+    group: named
+    mode: "0640"
+  when: bind_current_check.rc == 0
+
+- name: Déployer, contrôler et activer la configuration
+  block:
+    - name: Déposer named.conf
+      ansible.builtin.template:
+        src: named.conf.j2
+        dest: "{{ bind_conf_path }}"
+        owner: root
+        group: named
+        mode: "0640"
+      register: bind_conf_result
+
+    - name: Contrôler la syntaxe du fichier injecté
+      ansible.builtin.command: "named-checkconf {{ bind_conf_path }}"
+      changed_when: false
+
+    - name: Redémarrer named si la configuration a changé
+      ansible.builtin.systemd:
+        name: named
+        state: restarted
+        enabled: true
+      when: bind_conf_result.changed
+
+    - name: Démarrer et activer named
+      ansible.builtin.systemd:
+        name: named
+        state: started
+        enabled: true
+
+    - name: Attendre que named écoute sur le port 53
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 53
+        timeout: 15
+
+    - name: Test fonctionnel du serveur DNS
+      ansible.builtin.command: "dig +time=3 +tries=1 +short @127.0.0.1 {{ bind_test_name }}"
+      register: bind_dig
+      changed_when: false
+      failed_when: bind_dig.stdout | trim == ''
+
+  rescue:
+    - name: Rollback - la sauvegarde existe-t-elle ?
+      ansible.builtin.stat:
+        path: "{{ bind_conf_backup }}"
+      register: bind_backup_stat
+
+    - name: Rollback - restaurer l'ancienne configuration fonctionnelle
+      ansible.builtin.copy:
+        src: "{{ bind_conf_backup }}"
+        dest: "{{ bind_conf_path }}"
+        remote_src: true
+        owner: root
+        group: named
+        mode: "0640"
+      when: bind_backup_stat.stat.exists
+
+    - name: Rollback - redémarrer named avec l'ancienne configuration
+      ansible.builtin.systemd:
+        name: named
+        state: restarted
+      ignore_errors: true
+
+    - name: Signaler l'échec après rollback
+      ansible.builtin.fail:
+        msg: >-
+          Configuration bind refusée sur {{ inventory_hostname }}
+          (tâche en erreur : {{ ansible_failed_task.name }}).
+          L'ancienne configuration a été restaurée.
