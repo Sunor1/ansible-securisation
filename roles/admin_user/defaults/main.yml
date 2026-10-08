@@ -1,0 +1,2 @@
+---
+admin_password_chars: ascii_letters,digits,hexdigest

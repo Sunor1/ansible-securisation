@@ -1,0 +1,12 @@
+---
+- name: Sécuriser et configurer les postes gérés
+  hosts: all
+  become: true
+
+  roles:
+    - role: ssh_hardening
+      tags: [ssh]
+    - role: bind_dns
+      tags: [bind]
+    - role: admin_user
+      tags: [admin]

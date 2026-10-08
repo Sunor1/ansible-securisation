@@ -1,0 +1,5 @@
+---
+ssh_dropin_path: /etc/ssh/sshd_config.d/10-ansible-restrict.conf
+ssh_allow_users:
+  - "ansible@10.81.50.62"
+ssh_lock_ansible_password: true
